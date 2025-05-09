@@ -1,0 +1,82 @@
+{
+    "name": "mlops-extension",
+    "displayName": "MLOps Extension",
+    "description": "MLOps Agentic SaaS Extension",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onView:mlopsExplorer",
+        "onView:mlops.chatView"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "mlops-explorer",
+                    "title": "MLOps Explorer",
+                    "icon": "resources/dark/flows.svg"
+                }
+            ]
+        },
+        "views": {
+            "mlops-explorer": [
+                {
+                    "id": "mlopsExplorer",
+                    "name": "Resources",
+                    "type": "tree",
+                    "visibility": "visible"
+                },
+                {
+                    "id": "mlops.chatView",
+                    "name": "Chat",
+                    "type": "webview",
+                    "visibility": "visible"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "mlops.startFlow",
+                "title": "MLOps: Start New Flow"
+            },
+            {
+                "command": "mlops.viewHistory",
+                "title": "MLOps: View Chat History"
+            },
+            {
+                "command": "mlops.deployModel",
+                "title": "MLOps: Deploy Model"
+            },
+            {
+                "command": "mlops.refreshExplorer",
+                "title": "MLOps: Refresh Explorer"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.3",
+        "@types/mocha": "^8.2.2",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.60.0",
+        "@typescript-eslint/eslint-plugin": "^4.26.0",
+        "@typescript-eslint/parser": "^4.26.0",
+        "eslint": "^7.27.0",
+        "glob": "^7.1.7",
+        "mocha": "^11.2.2",
+        "typescript": "^4.3.2"
+    }
+}
