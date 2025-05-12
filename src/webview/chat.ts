@@ -1,27 +1,35 @@
 // src/webview/chat.ts
 import * as vscode from 'vscode';
+import { ChatService } from '../services/chat/chatService';
+import { ChatContext } from '../services/chat/types';
 
 export class ChatWebviewProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
+    private chatService: ChatService;
+    private chatContext?: ChatContext;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(
+        private readonly _extensionUri: vscode.Uri,
+        apiBaseUrl: string
+    ) {
+        this.chatService = new ChatService(apiBaseUrl);
+    }
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
+        _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
         try {
-            console.log('Resolving webview view'); // Debug log
+            console.log('Resolving webview view');
             this._view = webviewView;
             webviewView.webview.options = {
                 enableScripts: true,
                 localResourceRoots: [this._extensionUri]
             };
     
-            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+            webviewView.webview.html = this._getHtmlForWebview();
     
-            // Handle messages from the webview
             webviewView.webview.onDidReceiveMessage(async (data) => {
                 try {
                     switch (data.type) {
@@ -39,7 +47,59 @@ export class ChatWebviewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview): string {
+    private async handleChatMessage(message: string) {
+        try {
+            if (!this._view) return;
+
+            // Show loading state
+            this._view.webview.postMessage({
+                type: 'status',
+                status: 'loading'
+            });
+
+            // Process message using chatService
+            const response = await this.chatService.processMessage(message, this.chatContext);
+
+            // Update context if provided
+            if (response.context) {
+                this.chatContext = response.context;
+            }
+
+            // Send response back to webview
+            this._view.webview.postMessage({
+                type: 'response',
+                message: response.message
+            });
+
+            // Handle any actions if present
+            if (response.action) {
+                await this.handleAction(response.action);
+            }
+
+        } catch (error) {
+            console.error('Error handling chat message:', error);
+            if (this._view) {
+                this._view.webview.postMessage({
+                    type: 'error',
+                    message: 'Sorry, there was an error processing your message.'
+                });
+            }
+        }
+    }
+
+    private async handleAction(action: string) {
+        switch (action) {
+            case 'CREATE_TRAINING_PIPELINE':
+                await vscode.commands.executeCommand('mlops.startFlow', 'Training');
+                break;
+            case 'CREATE_INFERENCE_PIPELINE':
+                await vscode.commands.executeCommand('mlops.startFlow', 'Inference');
+                break;
+            // Add more actions as needed
+        }
+    }
+
+    private _getHtmlForWebview(): string {
         return `
             <!DOCTYPE html>
             <html>
@@ -134,6 +194,9 @@ export class ChatWebviewProvider implements vscode.WebviewViewProvider {
                                     case 'response':
                                         addMessage(message.message, 'bot');
                                         break;
+                                    case 'error':
+                                        addMessage(message.message, 'bot');
+                                        break;
                                 }
                             });
 
@@ -145,7 +208,6 @@ export class ChatWebviewProvider implements vscode.WebviewViewProvider {
                                 messageDiv.scrollIntoView({ behavior: 'smooth' });
                             }
 
-                            // Send message function
                             window.sendMessage = function() {
                                 const message = messageInput.value.trim();
                                 if (message) {
@@ -158,7 +220,6 @@ export class ChatWebviewProvider implements vscode.WebviewViewProvider {
                                 }
                             };
 
-                            // Handle Enter key
                             messageInput.addEventListener('keypress', (e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -166,36 +227,11 @@ export class ChatWebviewProvider implements vscode.WebviewViewProvider {
                                 }
                             });
 
-                            // Focus input on load
                             messageInput.focus();
                         })();
                     </script>
                 </body>
             </html>
         `;
-    }
-
-    private async handleChatMessage(message: string) {
-        try {
-            // Here you would integrate with your backend API
-            // For now, we'll just echo the message
-            if (this._view) {
-                // Simulate a delay to make it feel more natural
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                this._view.webview.postMessage({
-                    type: 'response',
-                    message: `Echo: ${message}`
-                });
-            }
-        } catch (error) {
-            console.error('Error handling chat message:', error);
-            if (this._view) {
-                this._view.webview.postMessage({
-                    type: 'response',
-                    message: 'Sorry, there was an error processing your message.'
-                });
-            }
-        }
     }
 }

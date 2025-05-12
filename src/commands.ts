@@ -7,7 +7,7 @@ import { OutputLogger } from './logger';
 export function registerCommands(
     context: vscode.ExtensionContext,
     treeView: MLOpsTreeViewProvider,
-    chatProvider: ChatWebviewProvider,
+    _chatProvider: ChatWebviewProvider,
     logger: OutputLogger
 ) {
     // Register all commands

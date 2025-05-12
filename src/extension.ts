@@ -1,4 +1,3 @@
-// src/extension.ts
 import * as vscode from 'vscode';
 import { MLOpsTreeViewProvider } from './treeView';
 import { ChatWebviewProvider } from './webview/chat';
@@ -20,16 +19,15 @@ export function activate(context: vscode.ExtensionContext) {
         });
         context.subscriptions.push(treeView);
         
+        // Get API URL from configuration
+        const config = vscode.workspace.getConfiguration('mlops');
+        const apiBaseUrl: string = config.get('apiBaseUrl') || 'http://localhost:5000';
+        
         // Register Webview Provider
-        const chatProvider = new ChatWebviewProvider(context.extensionUri);
+        const chatProvider = new ChatWebviewProvider(context.extensionUri, apiBaseUrl);
         const chatViewRegistration = vscode.window.registerWebviewViewProvider(
             'mlops.chatView',
-            chatProvider,
-            {
-                webviewOptions: {
-                    retainContextWhenHidden: true
-                }
-            }
+            chatProvider
         );
         context.subscriptions.push(chatViewRegistration);
         
@@ -37,10 +35,8 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommands(context, treeViewProvider, chatProvider, logger);
         
         logger.info('MLOps Extension Activated Successfully');
-        console.log('MLOps extension activated successfully');
     } catch (error) {
         logger.error(`Failed to activate MLOps extension: ${error}`);
-        console.error('Failed to activate MLOps extension:', error);
     }
 }
 
